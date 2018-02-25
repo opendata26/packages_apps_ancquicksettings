@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">ANC Quick Settings</string>
+    <string name="anc">ANC</string>
+    <string name="anc_label">Noise Canceling</string>
+    <string name="anc_active">Active</string>
+    <string name="anc_inactive">Inactive</string>
+    <string name="reconnect">Please reconnect your headphones to apply changes</string>
+</resources>

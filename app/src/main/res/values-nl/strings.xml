@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">ANC Snelle Instellingen</string>
+    <string name="anc">ANC</string>
+    <string name="anc_label">Ruisonderdrukking</string>
+    <string name="anc_active">Actief</string>
+    <string name="anc_inactive">Inactief</string>
+    <string name="reconnect">Sluit uw koptelefoon opnieuw aan om de wijzigingen door te voeren</string>
+</resources>
