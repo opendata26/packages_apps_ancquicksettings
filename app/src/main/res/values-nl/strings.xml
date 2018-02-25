@@ -4,5 +4,7 @@
     <string name="anc_label">Ruisonderdrukking</string>
     <string name="anc_active">Actief</string>
     <string name="anc_inactive">Inactief</string>
+    <string name="anc_failed_disable">Kan ruisonderdrukking niet uitschakelen</string>
+    <string name="anc_failed_enable">Kan ruisonderdrukking niet inschakelen</string>
     <string name="reconnect">Sluit uw koptelefoon opnieuw aan om de wijzigingen door te voeren</string>
 </resources>

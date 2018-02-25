@@ -1,10 +1,15 @@
 package com.sahulkrishan.ancquicksettings;
 
+import android.content.Context;
+import android.graphics.drawable.Icon;
+import android.media.AudioManager;
 import android.service.quicksettings.Tile;
 import android.service.quicksettings.TileService;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.widget.Toast;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by Sahul Krishan on 20/02/2018.
@@ -16,9 +21,7 @@ public class ANC_tile extends TileService {
     private final String LOG_TAG = "ANC_TILE";
     private final int STATE_OFF = 0;
     private final int STATE_ON = 1;
-    private int toggleState = STATE_ON;
-    String[] enable_anc = {"su","system/bin/setprop persist.audio.anc.enabled true"};
-    String[] disable_anc = {"su","system/bin/setprop persist.audio.anc.enabled false"};
+    private int state = STATE_ON;
 
     public String getSystemProperty(String key) {
         String value = null;
@@ -31,34 +34,79 @@ public class ANC_tile extends TileService {
     @Override
     public void onClick() {
         Tile tile = getQsTile();
-        if (toggleState == STATE_ON) {
-            toggleState = STATE_OFF;
-            tile.setState(Tile.STATE_INACTIVE);
-            tile.setLabel(getString(R.string.anc_inactive));
-            Log.d(LOG_TAG, "Requesting root permissions and executing commands...");
+        if (state == STATE_ON) {
+            // set persist.audio.anc.enabled to false and check if it's actually set to false
             try {
-                rt.exec(disable_anc);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+                Log.d(LOG_TAG, "Requesting root permissions and executing commands...");
+                // Request root permissions
+                rt.exec("su");
+                // Disable ANC
+                Process disable_anc = rt.exec("system/bin/setprop persist.audio.anc.enabled false");
+                disable_anc.waitFor();
+                if (getSystemProperty("persist.audio.anc.enabled").equals("false")){
+                    // ANC is disabled, update tile.
+                    Log.d(LOG_TAG, "ANC is disabled, setting tile to inactive...");
+                    state = STATE_OFF;
+                    tile.setState(Tile.STATE_INACTIVE);
+                    tile.setLabel(getString(R.string.anc_inactive));
+                    tile.setIcon(Icon.createWithResource(this, R.drawable.ic_tile_anc));
+                    AudioManager mAudioManager = (AudioManager) this.getSystemService(Context.AUDIO_SERVICE);
+                     /* if (mAudioManager.isMusicActive()) {
+                        KeyEvent stop = new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_STOP);
+                        mAudioManager.dispatchMediaKeyEvent(stop);
+                        TimeUnit.MILLISECONDS.sleep(500);
+                        KeyEvent play = new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PLAY);
+                        mAudioManager.dispatchMediaKeyEvent(play);
+                    } */ /** Disable for now, this doesn't automatically restart ANC **/
+                } else {
+                    // Failed to disable ANC, set tile to unavailable and display a warning.
+                    Log.d(LOG_TAG, "Failed to disable ANC, displaying warning...");
+                    tile.setState(Tile.STATE_ACTIVE);
+                    tile.setLabel(getString(R.string.anc_failed_disable));
+                }
+            } catch (IOException e) {e.printStackTrace();} catch (InterruptedException e) {e.printStackTrace();}
             tile.updateTile();
-            Toast.makeText(getApplicationContext(),R.string.reconnect,Toast.LENGTH_LONG).show();
         } else {
-            if (toggleState == STATE_OFF) {
-                toggleState = STATE_ON;
+            if (state == STATE_OFF) {
+                state = STATE_ON;
                 tile.setState(Tile.STATE_ACTIVE);
                 tile.setLabel(getString(R.string.anc_active));
-                Log.d(LOG_TAG, "Requesting root permissions and executing commands...");
+                // set persist.audio.anc.enabled to true and check if it's actually set to true
                 try {
-                    rt.exec(enable_anc);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                    Log.d(LOG_TAG, "Requesting root permissions and executing commands...");
+                    // Request root permissions
+                    rt.exec("su");
+                    // Enable ANC
+                    Process enable_anc = rt.exec("system/bin/setprop persist.audio.anc.enabled true");
+                    enable_anc.waitFor();
+                    if (getSystemProperty("persist.audio.anc.enabled").equals("true")){
+                        // ANC is enabled, update tile.
+                        Log.d(LOG_TAG, "ANC is enabled, setting tile to active...");
+                        state = STATE_ON;
+                        tile.setState(Tile.STATE_ACTIVE);
+                        tile.setLabel(getString(R.string.anc_active));
+                        tile.setIcon(Icon.createWithResource(this, R.drawable.ic_tile_anc));
+                        Toast.makeText(getApplicationContext(),R.string.reconnect,Toast.LENGTH_LONG).show();
+                        AudioManager mAudioManager = (AudioManager) this.getSystemService(Context.AUDIO_SERVICE);
+                        /* if (mAudioManager.isMusicActive()) {
+                            KeyEvent stop = new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PAUSE);
+                            mAudioManager.dispatchMediaKeyEvent(stop);
+                            TimeUnit.MILLISECONDS.sleep(500);
+                            KeyEvent play = new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PLAY);
+                            mAudioManager.dispatchMediaKeyEvent(play);
+                        } */ /** Disable for now, this doesn't automatically restart ANC **/
+                    } else {
+                        // Failed to enable ANC, set tile to unavailable and display a warning.
+                        Log.d(LOG_TAG, "Failed to enable ANC, displaying warning...");
+                        tile.setState(Tile.STATE_INACTIVE);
+                        tile.setLabel(getString(R.string.anc_failed_enable));
+                        tile.setIcon(Icon.createWithResource(this, R.drawable.ic_tile_anc_error));
+                    }
+                } catch (IOException e) {e.printStackTrace();} catch (InterruptedException e) {e.printStackTrace();}
                 tile.updateTile();
-                Toast.makeText(getApplicationContext(),R.string.reconnect,Toast.LENGTH_LONG).show();
             }
         }
-        Log.d(LOG_TAG, "ANC mode = " + Integer.toString(toggleState));
+        Log.d(LOG_TAG, "ANC mode = " + Integer.toString(state));
     }
 
     @Override
@@ -67,15 +115,17 @@ public class ANC_tile extends TileService {
         Log.d(LOG_TAG, "Started Listening");
         if (getSystemProperty("persist.audio.anc.enabled").equals("false")){
             Log.d(LOG_TAG, "ANC is disabled, setting tile to inactive...");
-            toggleState = STATE_OFF;
+            state = STATE_OFF;
             tile.setState(Tile.STATE_INACTIVE);
             tile.setLabel(getString(R.string.anc_inactive));
+            tile.setIcon(Icon.createWithResource(this, R.drawable.ic_tile_anc));
             tile.updateTile();
         } else {
             Log.d(LOG_TAG, "ANC is enabled, setting tile to active...");
-            toggleState = STATE_ON;
+            state = STATE_ON;
             tile.setState(Tile.STATE_ACTIVE);
             tile.setLabel(getString(R.string.anc_active));
+            tile.setIcon(Icon.createWithResource(this, R.drawable.ic_tile_anc));
             tile.updateTile();
         }
     }
