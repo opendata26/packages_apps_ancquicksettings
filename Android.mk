@@ -20,5 +20,5 @@ include $(CLEAR_VARS)
 LOCAL_PACKAGE_NAME := ANCQuickSettings
 LOCAL_CERTIFICATE := platform
 LOCAL_PRIVILEDGED_MODULE := true
-LOCAL_SRC_FILES := $(call all-subdir-java-files)
+LOCAL_SRC_FILES := $(call all-java-files-under, src)
 LOCAL_RESOURCE_DIR := $(LOCAL_PATH)/res
